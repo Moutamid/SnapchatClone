@@ -43,8 +43,8 @@
                     android:layout_marginLeft="15dp"
                     android:layout_weight="1"
                     android:background="#00000000"
-                    android:tint="#ffffff"
                     android:scaleType="fitXY"
+                    android:tint="#ffffff"
                     app:srcCompat="@drawable/flip_camera" />
 
                 <ImageButton
@@ -55,8 +55,9 @@
                     android:layout_marginLeft="75dp"
                     android:layout_weight="1"
                     android:background="#00000000"
-                    android:tint="#ffffff"
                     android:scaleType="fitXY"
+                    android:tint="#ffffff"
+                    android:visibility="invisible"
                     app:srcCompat="@drawable/flash" />
 
                 <ImageButton
@@ -86,13 +87,12 @@
                 android:id="@+id/scrollView"
                 android:layout_width="match_parent"
                 android:layout_height="58dp"
-                android:layout_alignParentBottom="true"
                 android:background="@drawable/round_background"
                 android:scrollbars="none"
                 android:visibility="gone">
 
                 <LinearLayout
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:orientation="horizontal">
 
@@ -228,6 +228,236 @@
 
                 </LinearLayout>
             </HorizontalScrollView>
+
+            <LinearLayout
+                android:id="@+id/filter_items_linear_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="58dp"
+                    android:background="#efefef"
+                    android:scrollbars="none">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:orientation="horizontal">
+
+                        <ImageButton
+                            android:id="@+id/empty_image_button"
+                            android:layout_width="50dp"
+                            android:layout_height="50dp"
+                            android:layout_margin="4dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/round_background_select"
+                            android:scaleType="fitXY"
+                            app:srcCompat="@drawable/no_filter" />
+
+                        <ImageButton
+                            android:id="@+id/hat_image_button"
+                            android:layout_width="50dp"
+                            android:layout_height="50dp"
+                            android:layout_margin="4dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/round_background"
+                            android:scaleType="fitXY"
+                            app:srcCompat="@drawable/hat" />
+
+                        <ImageButton
+                            android:id="@+id/mask_image_button"
+                            android:layout_width="50dp"
+                            android:layout_height="50dp"
+                            android:layout_margin="4dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/round_background"
+                            android:scaleType="fitXY"
+                            app:srcCompat="@drawable/mask" />
+
+                        <ImageButton
+                            android:id="@+id/glasses_image_button"
+                            android:layout_width="50dp"
+                            android:layout_height="50dp"
+                            android:layout_margin="4dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/round_background"
+                            android:scaleType="fitXY"
+                            app:srcCompat="@drawable/glasses2" />
+
+                        <ImageButton
+                            android:id="@+id/animal_image_button"
+                            android:layout_width="50dp"
+                            android:layout_height="50dp"
+                            android:layout_margin="4dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/round_background"
+                            android:scaleType="fitXY"
+                            app:srcCompat="@drawable/snap" />
+
+                    </LinearLayout>
+
+                </HorizontalScrollView>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#B1ACAC" />
+
+                <!--hat, mask, glasses, animal, moustache, crown-->
+                <!--            EMPTY LAYOUT-->
+                <LinearLayout
+                    android:id="@+id/empty_linear_layout"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:background="#EFEFEF"
+                    android:orientation="horizontal"
+                    android:padding="20dp"
+                    android:weightSum="1">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:text="Please select a filter" />
+
+                </LinearLayout>
+
+
+                <!--            HAT LAYOUT-->
+                <LinearLayout
+                    android:id="@+id/hat_linear_layout"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:background="#EFEFEF"
+                    android:orientation="horizontal"
+                    android:padding="20dp"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:id="@+id/hat_image_view"
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:src="@drawable/hat" />
+                    <!--android:background="@drawable/bg_filter_items_selected"-->
+                    <ImageView
+                        android:id="@+id/hat2_image_view"
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:layout_marginStart="10dp"
+                        android:src="@drawable/hat2" />
+
+                </LinearLayout>
+
+                <!--            MASK LAYOUT-->
+                <LinearLayout
+                    android:id="@+id/mask_linear_layout"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:background="#EFEFEF"
+                    android:orientation="horizontal"
+                    android:padding="20dp"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:id="@+id/mask_image_view"
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:src="@drawable/mask" />
+
+                    <ImageView
+                        android:id="@+id/mask2_image_view"
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:layout_marginStart="10dp"
+                        android:src="@drawable/mask2" />
+
+                    <ImageView
+                        android:id="@+id/mask3_image_view"
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:layout_marginStart="10dp"
+                        android:src="@drawable/mask3" />
+
+                </LinearLayout>
+
+                <!--            GLASSES LAYOUT-->
+                <LinearLayout
+                    android:id="@+id/glasses_linear_layout"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:background="#EFEFEF"
+                    android:orientation="horizontal"
+                    android:padding="20dp"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:id="@+id/glasses2_image_view"
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:src="@drawable/glasses2" />
+
+                    <ImageView
+                        android:id="@+id/glasses3_image_view"
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:layout_marginStart="10dp"
+                        android:src="@drawable/glasses3" />
+
+                    <ImageView
+                        android:id="@+id/glasses4_image_view"
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:layout_marginStart="10dp"
+                        android:src="@drawable/glasses4" />
+
+                    <ImageView
+                        android:id="@+id/glasses5_image_view"
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:layout_marginStart="10dp"
+                        android:src="@drawable/glasses5" />
+
+                </LinearLayout>
+
+                <!--            ANIMAL LAYOUT-->
+                <LinearLayout
+                    android:id="@+id/animal_linear_layout"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:background="#EFEFEF"
+                    android:orientation="horizontal"
+                    android:padding="20dp"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:id="@+id/cat2_image_view"
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:src="@drawable/cat2" />
+
+                    <ImageView
+                        android:id="@+id/dog_image_view"
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:layout_marginStart="10dp"
+                        android:src="@drawable/dog" />
+
+                    <ImageView
+                        android:id="@+id/snap_image_view"
+                        android:layout_width="45dp"
+                        android:layout_height="45dp"
+                        android:layout_marginStart="10dp"
+                        android:src="@drawable/snap" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
         </LinearLayout>
 
     </RelativeLayout>

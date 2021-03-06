@@ -22,6 +22,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -52,14 +54,16 @@ public class FaceFilterActivity extends AppCompatActivity {
 
         public void run() {
 
-            while( !isInterrupted() ) {
+            while (!isInterrupted()) {
                 /*
                 TextGraphic mTextGraphic = new TextGraphic(mGraphicOverlay);
                 mGraphicOverlay.add(mTextGraphic);*/
                 //mTextGraphic.updateText(2);
             }
 
-        };
+        }
+
+        ;
     };
 
     private static final String TAG = "FaceTracker";
@@ -70,7 +74,7 @@ public class FaceFilterActivity extends AppCompatActivity {
     private boolean flashmode = false;
     private Camera camera;
 
-    private static final int MASK[] = {
+    private static final int MASK1[] = {
             R.id.no_filter,
             R.id.hair,
             R.id.op,
@@ -86,12 +90,45 @@ public class FaceFilterActivity extends AppCompatActivity {
             R.id.cat2
     };
 
+    private static final int MASK[] = {
+            R.drawable.transparent,
+            R.drawable.hat,
+            R.drawable.hat2,
+            R.drawable.mask,
+            R.drawable.mask2,
+            R.drawable.mask3,
+            R.drawable.glasses2,
+            R.drawable.glasses3,
+            R.drawable.glasses4,
+            R.drawable.glasses5,
+            R.drawable.cat2,
+            R.drawable.dog,
+            R.drawable.snap
+    };
+
     private CameraSourcePreview mPreview;
     private GraphicOverlay mGraphicOverlay;
 
     private static final int RC_HANDLE_GMS = 9001;
     // permission request codes need to be < 256
     private static final int RC_HANDLE_CAMERA_PERM = 2;
+
+    private ImageButton emptyImageButton, hatImageButton,
+            maskImageButton, glassesImageButton, animalImageButton;
+    private LinearLayout emptyLinearLayout, hatLinearLayout,
+            maskLinearLayout, glassesLinearLayout, animalLinearLayout;
+
+    private LinearLayout currentLinearLayout;
+    private ImageButton currentImageButton;
+
+    private ImageView hatImageView, hat2ImageView, maskImageView, mask2ImageView,
+            mask3ImageView,
+            glasses2ImageView, glasses3ImageView, glasses4ImageView, glasses5ImageView,
+            cat2ImageView, dogImageView, snapImageView;
+
+    private ImageView currentImageView;
+
+    private LinearLayout filterItemsLinearLayout;
 
     //==============================================================================================
     // Activity Methods
@@ -107,17 +144,23 @@ public class FaceFilterActivity extends AppCompatActivity {
 
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
         mGraphicOverlay = (GraphicOverlay) findViewById(R.id.faceOverlay);
+
+        initViews();
+
         //mTextGraphic = new TextGraphic(mGraphicOverlay);
         //mGraphicOverlay.add(mTextGraphic);
 
         ImageButton face = (ImageButton) findViewById(R.id.face);
         face.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                if(findViewById(R.id.scrollView).getVisibility() == GONE){
-                    findViewById(R.id.scrollView).setVisibility(View.VISIBLE);
+//                if (findViewById(R.id.scrollView).getVisibility() == GONE) {
+                if (filterItemsLinearLayout.getVisibility() == GONE) {
+                    filterItemsLinearLayout.setVisibility(View.VISIBLE);
+//                    findViewById(R.id.scrollView).setVisibility(View.VISIBLE);
                     ((ImageButton) findViewById(R.id.face)).setImageResource(R.drawable.face_select);
-                }else{
-                    findViewById(R.id.scrollView).setVisibility(GONE);
+                } else {
+//                    findViewById(R.id.scrollView).setVisibility(GONE);
+                    filterItemsLinearLayout.setVisibility(GONE);
                     ((ImageButton) findViewById(R.id.face)).setImageResource(R.drawable.face);
                 }
             }
@@ -243,6 +286,21 @@ public class FaceFilterActivity extends AppCompatActivity {
         ImageButton button = (ImageButton) findViewById(R.id.change);
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
+
+                if (mCameraSource.getCameraFacing() == CameraSource.CAMERA_FACING_BACK) {
+
+                    mCameraSource.release();
+                    mCameraSource = null;
+                    createCameraSource(CameraSource.CAMERA_FACING_FRONT);
+                    startCameraSource();
+
+                } else {
+                    mCameraSource.release();
+                    mCameraSource = null;
+                    createCameraSource(CameraSource.CAMERA_FACING_BACK);
+                    startCameraSource();
+                }
+                Toast.makeText(FaceFilterActivity.this, "Changed!", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -250,10 +308,10 @@ public class FaceFilterActivity extends AppCompatActivity {
         flash.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 int blue;
-                if(flashmode==false){
+                if (flashmode == false) {
                     flashmode = true;
                     blue = 0;
-                }else{
+                } else {
                     flashmode = false;
                     blue = 255;
                 }
@@ -270,19 +328,164 @@ public class FaceFilterActivity extends AppCompatActivity {
         });
 
 
-
         // Check for the camera permission before accessing the camera.  If the
         // permission is not granted yet, request permission.
         int rc = ActivityCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
         if (rc == PackageManager.PERMISSION_GRANTED) {
-            createCameraSource();
+            createCameraSource(CameraSource.CAMERA_FACING_FRONT);
         } else {
             requestCameraPermission();
         }
     }
 
+    private void initViews() {
+
+        currentImageButton = findViewById(R.id.empty_image_button);
+        currentLinearLayout = findViewById(R.id.empty_linear_layout);
+
+        emptyImageButton = findViewById(R.id.empty_image_button);
+        hatImageButton = findViewById(R.id.hat_image_button);
+        maskImageButton = findViewById(R.id.mask_image_button);
+        glassesImageButton = findViewById(R.id.glasses_image_button);
+        animalImageButton = findViewById(R.id.animal_image_button);
+
+        emptyLinearLayout = findViewById(R.id.empty_linear_layout);
+        hatLinearLayout = findViewById(R.id.hat_linear_layout);
+        maskLinearLayout = findViewById(R.id.mask_linear_layout);
+        glassesLinearLayout = findViewById(R.id.glasses_linear_layout);
+        animalLinearLayout = findViewById(R.id.animal_linear_layout);
+
+        emptyImageButton.setOnClickListener(emptyImageButtonClickListener());
+        hatImageButton.setOnClickListener(hatImageButtonClickListener());
+        maskImageButton.setOnClickListener(maskImageButtonClickListener());
+        glassesImageButton.setOnClickListener(glassesImageButtonClickListener());
+        animalImageButton.setOnClickListener(animalImageButtonClickListener());
+
+        hatImageView = findViewById(R.id.hat_image_view);
+        hat2ImageView = findViewById(R.id.hat2_image_view);
+        maskImageView = findViewById(R.id.mask_image_view);
+        mask2ImageView = findViewById(R.id.mask2_image_view);
+        mask3ImageView = findViewById(R.id.mask3_image_view);
+        glasses2ImageView = findViewById(R.id.glasses2_image_view);
+        glasses3ImageView = findViewById(R.id.glasses3_image_view);
+        glasses4ImageView = findViewById(R.id.glasses4_image_view);
+        glasses5ImageView = findViewById(R.id.glasses5_image_view);
+        cat2ImageView = findViewById(R.id.cat2_image_view);
+        dogImageView = findViewById(R.id.dog_image_view);
+        snapImageView = findViewById(R.id.snap_image_view);
+
+        currentImageView = findViewById(R.id.hat_image_view);
+
+        hatImageView.setOnClickListener(imageViewClickListener(hatImageView, 1));
+        hat2ImageView.setOnClickListener(imageViewClickListener(hat2ImageView, 2));
+        maskImageView.setOnClickListener(imageViewClickListener(maskImageView, 3));
+        mask2ImageView.setOnClickListener(imageViewClickListener(mask2ImageView, 4));
+        mask3ImageView.setOnClickListener(imageViewClickListener(mask3ImageView, 5));
+        glasses2ImageView.setOnClickListener(imageViewClickListener(glasses2ImageView, 6));
+        glasses3ImageView.setOnClickListener(imageViewClickListener(glasses3ImageView, 7));
+        glasses4ImageView.setOnClickListener(imageViewClickListener(glasses4ImageView, 8));
+        glasses5ImageView.setOnClickListener(imageViewClickListener(glasses5ImageView, 9));
+        cat2ImageView.setOnClickListener(imageViewClickListener(cat2ImageView, 10));
+        dogImageView.setOnClickListener(imageViewClickListener(dogImageView, 11));
+        snapImageView.setOnClickListener(imageViewClickListener(snapImageView, 12));
+
+        filterItemsLinearLayout = findViewById(R.id.filter_items_linear_layout);
+    }
+
+    private View.OnClickListener imageViewClickListener(final ImageView imageView, final int index) {
+
+        return new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                if (currentImageView != imageView) {
+
+                    currentImageView.setBackgroundResource(0);
+
+                    currentImageView = imageView;
+
+                    currentImageView.setBackgroundResource(R.drawable.bg_filter_items_selected);
+
+                    typeFace = index;
+
+                }
+
+            }
+        };
+    }
+
+    private void toggleButtonAndLayout(ImageButton imageButton, LinearLayout linearLayout) {
+        if (currentImageButton != imageButton) {
+
+            currentImageButton.setBackgroundResource(R.drawable.round_background);
+            currentLinearLayout.setVisibility(View.GONE);
+
+            currentImageButton = imageButton;
+            currentLinearLayout = linearLayout;
+
+            currentImageButton.setBackgroundResource(R.drawable.round_background_select);
+            currentLinearLayout.setVisibility(View.VISIBLE);
+
+        }
+    }
+
+    private View.OnClickListener emptyImageButtonClickListener() {
+        return new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                toggleButtonAndLayout(emptyImageButton, emptyLinearLayout);
+
+                currentImageView.setBackgroundResource(0);
+                typeFace = 0;
+
+            }
+        };
+    }
+
+    private View.OnClickListener hatImageButtonClickListener() {
+        return new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                toggleButtonAndLayout(hatImageButton, hatLinearLayout);
+
+            }
+        };
+    }
+
+    private View.OnClickListener maskImageButtonClickListener() {
+        return new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                toggleButtonAndLayout(maskImageButton, maskLinearLayout);
+            }
+        };
+    }
+
+    private View.OnClickListener glassesImageButtonClickListener() {
+        return new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                toggleButtonAndLayout(glassesImageButton, glassesLinearLayout);
+            }
+        };
+    }
+
+    private View.OnClickListener animalImageButtonClickListener() {
+        return new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                toggleButtonAndLayout(animalImageButton, animalLinearLayout);
+            }
+        };
+    }
+
     private void takeImage() {
-        try{
+        try {
             //openCamera(CameraInfo.CAMERA_FACING_BACK);
             //releaseCameraSource();
             //releaseCamera();
@@ -292,6 +495,7 @@ public class FaceFilterActivity extends AppCompatActivity {
             mCameraSource.takePicture(null, new CameraSource.PictureCallback() {
 
                 private File imageFile;
+
                 @Override
                 public void onPictureTaken(byte[] bytes) {
                     try {
@@ -311,7 +515,7 @@ public class FaceFilterActivity extends AppCompatActivity {
                         File folder = null;
                         if (state.contains(Environment.MEDIA_MOUNTED)) {
                             folder = new File(Environment
-                                    .getExternalStorageDirectory()+"/faceFilter");
+                                    .getExternalStorageDirectory() + "/faceFilter");
                         } else {
                             folder = new File(Environment
                                     .getExternalStorageDirectory() + "/faceFilter");
@@ -360,7 +564,7 @@ public class FaceFilterActivity extends AppCompatActivity {
                 }
             });
 
-        }catch (Exception ex){
+        } catch (Exception ex) {
         }
 
     }
@@ -423,7 +627,7 @@ public class FaceFilterActivity extends AppCompatActivity {
      * to other detection examples to enable the barcode detector to detect small barcodes
      * at long distances.
      */
-    private void createCameraSource() {
+    private void createCameraSource(int facingMode) {
 
         Context context = getApplicationContext();
         FaceDetector detector = new FaceDetector.Builder(context)
@@ -453,8 +657,9 @@ public class FaceFilterActivity extends AppCompatActivity {
         mCameraSource = new CameraSource.Builder(context, detector)
                 .setRequestedPreviewSize(640, 480)
                 .setAutoFocusEnabled(true)
-                .setFacing(CameraSource.CAMERA_FACING_BACK)
-                .setRequestedFps(30.0f)
+                .setFacing(facingMode)
+//                .setFacing(CameraSource.CAMERA_FACING_BACK)
+//TODO: commented this        .setRequestedFps(30.0f)
                 .build();
         //observer.start();
         /*
@@ -479,6 +684,7 @@ public class FaceFilterActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
+
         mPreview.stop();
     }
 
@@ -521,7 +727,7 @@ public class FaceFilterActivity extends AppCompatActivity {
         if (grantResults.length != 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             Log.d(TAG, "Camera permission granted - initialize the camera source");
             // we have permission, so create the camerasource
-            createCameraSource();
+            createCameraSource(CameraSource.CAMERA_FACING_FRONT);
             return;
         }
 
@@ -581,7 +787,7 @@ public class FaceFilterActivity extends AppCompatActivity {
 
     private class GraphicTextTracker extends Tracker<String> {
         private GraphicOverlay mOverlay;
-        private TextGraphic mTextGraphic ;
+        private TextGraphic mTextGraphic;
 
         GraphicTextTracker(GraphicOverlay overlay) {
             mOverlay = overlay;
@@ -599,9 +805,9 @@ public class FaceFilterActivity extends AppCompatActivity {
         }
     }
 
-    //==============================================================================================
-    // Graphic Face Tracker
-    //==============================================================================================
+//==============================================================================================
+// Graphic Face Tracker
+//==============================================================================================
 
     /**
      * Factory for creating a face tracker to be associated with a new face.  The multiprocessor
@@ -624,7 +830,7 @@ public class FaceFilterActivity extends AppCompatActivity {
 
         GraphicFaceTracker(GraphicOverlay overlay) {
             mOverlay = overlay;
-            mFaceGraphic = new FaceGraphic(overlay,typeFace);
+            mFaceGraphic = new FaceGraphic(overlay, typeFace);
         }
 
         /**
@@ -641,7 +847,7 @@ public class FaceFilterActivity extends AppCompatActivity {
         @Override
         public void onUpdate(FaceDetector.Detections<Face> detectionResults, Face face) {
             mOverlay.add(mFaceGraphic);
-            mFaceGraphic.updateFace(face,typeFace);
+            mFaceGraphic.updateFace(face, typeFace);
         }
 
         /**

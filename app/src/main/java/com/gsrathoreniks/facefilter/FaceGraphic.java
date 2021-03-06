@@ -38,19 +38,35 @@ class FaceGraphic extends GraphicOverlay.Graphic {
 
     private static final int MASK[] = {
             R.drawable.transparent,
-            R.drawable.hair,
-            R.drawable.op,
-            R.drawable.snap,
+            R.drawable.hat,
+            R.drawable.hat2,
+            R.drawable.mask,
+            R.drawable.mask2,
+            R.drawable.mask3,
             R.drawable.glasses2,
             R.drawable.glasses3,
             R.drawable.glasses4,
             R.drawable.glasses5,
-            R.drawable.mask,
-            R.drawable.mask2,
-            R.drawable.mask3,
+            R.drawable.cat2,
             R.drawable.dog,
-            R.drawable.cat2
+            R.drawable.snap
     };
+
+//    private static final int MASK[] = {
+//            R.drawable.transparent,
+//            R.drawable.hair,
+//            R.drawable.op,
+//            R.drawable.snap,
+//            R.drawable.glasses2,
+//            R.drawable.glasses3,
+//            R.drawable.glasses4,
+//            R.drawable.glasses5,
+//            R.drawable.mask,
+//            R.drawable.mask2,
+//            R.drawable.mask3,
+//            R.drawable.dog,
+//            R.drawable.cat2
+//    };
 
     /*
     private static final int COLOR_CHOICES[] = {

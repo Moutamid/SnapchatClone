@@ -1,33 +1,25 @@
-/*
- * Copyright (C) The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.gsrathoreniks.facefilter;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.util.Log;
 
 import com.google.android.gms.vision.face.Face;
 import com.gsrathoreniks.facefilter.camera.GraphicOverlay;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 
 /**
  * Graphic instance for rendering face position, orientation, and landmarks within an associated
  * graphic overlay view.
  */
 class FaceGraphic extends GraphicOverlay.Graphic {
+    private static final String TAG = "FaceGraphicClass";
+
     private static final float FACE_POSITION_RADIUS = 10.0f;
     private static final float ID_TEXT_SIZE = 40.0f;
     private static final float ID_Y_OFFSET = 50.0f;
@@ -89,52 +81,132 @@ class FaceGraphic extends GraphicOverlay.Graphic {
     private Bitmap bitmap;
     private Bitmap op;
 
-    FaceGraphic(GraphicOverlay overlay,int c) {
+//    FaceGraphic(GraphicOverlay overlay, String path2, String name2) {
+//        super(overlay);
+//
+//        File f = new File(path2, name2);
+//        try {
+//            Bitmap bitmap3 = BitmapFactory.decodeStream(new FileInputStream(f));
+//            op = bitmap3;
+//        } catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        }
+//
+//        Log.d(TAG, "FaceGraphic: Constructor triggered!");
+//    }
+
+    //    FaceGraphic(GraphicOverlay overlay, Bitmap bitmap1) {
+//        super(overlay);
+//        /*
+//        mCurrentColorIndex = (mCurrentColorIndex + 1) % COLOR_CHOICES.length;
+//        final int selectedColor = COLOR_CHOICES[mCurrentColorIndex];
+//
+//        mFacePositionPaint = new Paint();
+//        mFacePositionPaint.setColor(selectedColor);
+//
+//        mIdPaint = new Paint();
+//        mIdPaint.setColor(selectedColor);
+//        mIdPaint.setTextSize(ID_TEXT_SIZE);
+//
+//        mBoxPaint = new Paint();
+//        mBoxPaint.setColor(selectedColor);
+//        mBoxPaint.setStyle(Paint.Style.STROKE);
+//        mBoxPaint.setStrokeWidth(BOX_STROKE_WIDTH);
+//        */
+//
+////        if (bitmap == op)
+////            return;
+//
+//
+//
+//        op = bitmap1;
+//
+//        Log.d(TAG, "FaceGraphic: Constructor triggered!");
+//    }
+//    FaceGraphic(GraphicOverlay overlay,int c) {
+//        super(overlay);
+//        bitmap = BitmapFactory.decodeResource(getOverlay().getContext().getResources(),MASK[c]);
+//        op = bitmap;
+//    }
+    FaceGraphic(GraphicOverlay overlay, int currentImageByteValue) {
         super(overlay);
-        /*
-        mCurrentColorIndex = (mCurrentColorIndex + 1) % COLOR_CHOICES.length;
-        final int selectedColor = COLOR_CHOICES[mCurrentColorIndex];
-
-        mFacePositionPaint = new Paint();
-        mFacePositionPaint.setColor(selectedColor);
-
-        mIdPaint = new Paint();
-        mIdPaint.setColor(selectedColor);
-        mIdPaint.setTextSize(ID_TEXT_SIZE);
-
-        mBoxPaint = new Paint();
-        mBoxPaint.setColor(selectedColor);
-        mBoxPaint.setStyle(Paint.Style.STROKE);
-        mBoxPaint.setStrokeWidth(BOX_STROKE_WIDTH);
-        */
-        bitmap = BitmapFactory.decodeResource(getOverlay().getContext().getResources(),MASK[c]);
+        bitmap = BitmapFactory.decodeResource(getOverlay().getContext().getResources(), currentImageByteValue);
         op = bitmap;
     }
 
     void setId(int id) {
         mFaceId = id;
+        Log.d(TAG, "setId: triggered");
+    }
+
+    Bitmap getBitmap(Face face, Bitmap bmp){
+        return Bitmap.createScaledBitmap(op, (int) scaleX(face.getWidth()),
+                (int) scaleY(((bitmap.getHeight() * face.getWidth()) / bitmap.getWidth())), false);
     }
 
     /**
      * Updates the face instance from the detection of the most recent frame.  Invalidates the
      * relevant portions of the overlay to trigger a redraw.
      */
-    void updateFace(Face face,int c) {
+    void updateFace(Face face, int currentImageByteValue1) {
         mFace = face;
-        bitmap = BitmapFactory.decodeResource(getOverlay().getContext().getResources(), MASK[c]);
+        bitmap = BitmapFactory.decodeResource(getOverlay().getContext().getResources(), currentImageByteValue1);
         op = bitmap;
         op = Bitmap.createScaledBitmap(op, (int) scaleX(face.getWidth()),
                 (int) scaleY(((bitmap.getHeight() * face.getWidth()) / bitmap.getWidth())), false);
         postInvalidate();
     }
+//    void updateFace(Face face, String path, String name) {
+//        Log.d(TAG, "updateFace: triggered");
+//
+//        try {
+//            File f = new File(path, name);
+//            Bitmap bitmap = BitmapFactory.decodeStream(new FileInputStream(f));
+//
+//            mFace = face;
+//            op = bitmap;
+//            op = Bitmap.createScaledBitmap(op, (int) scaleX(face.getWidth()),
+//                    (int) scaleY(((bitmap.getHeight() * face.getWidth()) / bitmap.getWidth())), false);
+//
+//            postInvalidate();
+//
+//        } catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        }
+//
+//    }
+//    void updateFace(Face face, Bitmap bitmap) {
+////        if (bitmap == op)
+////            return;
+//
+//        Log.d(TAG, "updateFace: triggered");
+//
+//        mFace = face;
+//        op = bitmap;
+//        op = Bitmap.createScaledBitmap(op, (int) scaleX(face.getWidth()),
+//                (int) scaleY(((bitmap.getHeight() * face.getWidth()) / bitmap.getWidth())), false);
+//        postInvalidate();
+//
+//    }
+//    void updateFace(Face face, int c) {
+//            mFace = face;
+//            bitmap = BitmapFactory.decodeResource(getOverlay().getContext().getResources(), MASK[c]);
+//            op = bitmap;
+//            op = Bitmap.createScaledBitmap(op, (int) scaleX(face.getWidth()),
+//                    (int) scaleY(((bitmap.getHeight() * face.getWidth()) / bitmap.getWidth())), false);
+//            postInvalidate();
+//        }
 
     /**
      * Draws the face annotations for position on the supplied canvas.
      */
     @Override
     public void draw(Canvas canvas) {
+        if (op == null)
+            return;
+
         Face face = mFace;
-        if(face == null) return;
+        if (face == null) return;
         // Draws a circle at the position of the detected face, with the face's track id below.
         float x = translateX(face.getPosition().x + face.getWidth() / 2);
         float y = translateY(face.getPosition().y + face.getHeight() / 2);
@@ -153,6 +225,8 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         //float bottom = y + yOffset;
         //canvas.drawRect(left, top, right, bottom, mBoxPaint);
         canvas.drawBitmap(op, left, top, new Paint());
+
+        Log.d(TAG, "draw: triggered");
     }
     /*
     private float getNoseAndMouthDistance(PointF nose, PointF mouth) {

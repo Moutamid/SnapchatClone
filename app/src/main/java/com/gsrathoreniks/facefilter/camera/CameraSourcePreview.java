@@ -1,26 +1,20 @@
-/*
- * Copyright (C) The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.gsrathoreniks.facefilter.camera;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.SurfaceTexture;
+import android.support.v4.app.ActivityCompat;
+import android.support.v7.util.AsyncListUtil;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.PixelCopy;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.TextureView;
+import android.view.View;
 import android.view.ViewGroup;
 
 import com.google.android.gms.common.images.Size;
@@ -38,6 +32,25 @@ public class CameraSourcePreview extends ViewGroup {
     private CameraSource mCameraSource;
 
     private GraphicOverlay mOverlay;
+
+    public Bitmap getSurfaceBitmap() {
+        Bitmap surfaceBitmap = Bitmap.createBitmap(600, 600, Bitmap.Config.ARGB_8888);
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            PixelCopy.OnPixelCopyFinishedListener listener1 = new PixelCopy.OnPixelCopyFinishedListener() {
+                @Override
+                public void onPixelCopyFinished(int copyResult) {
+
+                }
+            };
+
+            PixelCopy.request(mSurfaceView, surfaceBitmap, listener1, getHandler());
+            // visualize the retrieved bitmap on your imageview
+//            setImageBitmap(plotBitmap);
+        }
+        return surfaceBitmap;
+    }
+
 
     public CameraSourcePreview(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -83,6 +96,9 @@ public class CameraSourcePreview extends ViewGroup {
 
     private void startIfReady() throws IOException {
         if (mStartRequested && mSurfaceAvailable) {
+            if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
             mCameraSource.start(mSurfaceView.getHolder());
             if (mOverlay != null) {
                 Size size = mCameraSource.getPreviewSize();
@@ -147,7 +163,7 @@ public class CameraSourcePreview extends ViewGroup {
         // Computes height and width for potentially doing fit width.
         int childWidth = layoutWidth;
         int childHeight = layoutHeight;
-                //(int)(((float) layoutWidth / (float) width) * height);
+        //(int)(((float) layoutWidth / (float) width) * height);
 /*
         // If height is too tall using fit width, does fit height instead.
         if (childHeight > layoutHeight) {

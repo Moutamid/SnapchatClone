@@ -4,28 +4,43 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.content.ContentValues;
+import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Camera;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
+import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.MediaStore;
+import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewGroup.MarginLayoutParams;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
+import com.dezlum.codelabs.getjson.GetJson;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.vision.CameraSource;
@@ -35,15 +50,25 @@ import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
 import com.gsrathoreniks.facefilter.camera.CameraSourcePreview;
 import com.gsrathoreniks.facefilter.camera.GraphicOverlay;
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.ImageLoaderConfiguration;
 
-import java.io.ByteArrayOutputStream;
+import com.gsrathoreniks.facefilter.camera.GraphicOverlay;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.concurrent.ExecutionException;
 
 import static android.view.View.GONE;
 
-public class FaceFilterActivity extends AppCompatActivity {
+public class FaceFilterActivity extends AppCompatActivity {//implements FaceFilterActivity.MyRecyclerViewAdapter.ItemClickListener
     TextGraphic mTextGraphic;
 
     private final Thread observer = new Thread("observer") {
@@ -67,10 +92,80 @@ public class FaceFilterActivity extends AppCompatActivity {
     };
 
     private static final String TAG = "FaceTracker";
+    private ArrayList<String> filterLinksList = new ArrayList<>();
+
+    private ArrayList<Integer> filterImagesList = new ArrayList<>();
+    private int currentImageValue = R.drawable.transparent;
+    private Bitmap graphicBitmap;
+
+    private static final String ANIMALS_LINK = "https://mysnapchatapp-cb445-default-rtdb.firebaseio.com/animal.json";
+    private static final String GLASSES_LINK = "https://mysnapchatapp-cb445-default-rtdb.firebaseio.com/glasses.json";
+    private static final String HAT_LINK = "https://mysnapchatapp-cb445-default-rtdb.firebaseio.com/hat.json";
+    private static final String MASKS_LINK = "https://mysnapchatapp-cb445-default-rtdb.firebaseio.com/masks.json";
+    private static final String XYZ_LINK = "https://mysnapchatapp-cb445-default-rtdb.firebaseio.com/xyz.json";
+
+    private void initAnimalsList() {
+        filterImagesList.clear();
+
+        filterImagesList.add(R.drawable.cat2);
+        filterImagesList.add(R.drawable.dog);
+        filterImagesList.add(R.drawable.snap);
+
+        initRecyclerview();
+    }
+
+    private void initGlassesList() {
+        filterImagesList.clear();
+
+        filterImagesList.add(R.drawable.glasses4);
+        filterImagesList.add(R.drawable.glasses3);
+        filterImagesList.add(R.drawable.glasses2);
+        filterImagesList.add(R.drawable.glasses5);
+
+        initRecyclerview();
+    }
+
+    private void initHatList() {
+        filterImagesList.clear();
+
+        filterImagesList.add(R.drawable.hat);
+        filterImagesList.add(R.drawable.hat2);
+        filterImagesList.add(R.drawable.eyeglasses);
+
+        initRecyclerview();
+    }
+
+    private void initMasksList() {
+        filterImagesList.clear();
+
+        filterImagesList.add(R.drawable.mask);
+        filterImagesList.add(R.drawable.mask2);
+        filterImagesList.add(R.drawable.mask3);
+
+        initRecyclerview();
+    }
+
+    private void initXyzList() {
+        filterImagesList.clear();
+
+        filterImagesList.add(R.drawable.eyeglasses);
+
+//        filterImagesList.add(R.drawable.hat2);
+//        filterImagesList.add(R.drawable.hair);
+//        filterImagesList.add(R.drawable.snap);
+//        filterImagesList.add(R.drawable.glasses2);
+
+        initRecyclerview();
+    }
+
+    private Bitmap bitmapSRC;
+    private Bitmap bitmapPREV;
 
     private CameraSource mCameraSource = null;
     private int typeFace = 0;
     private int typeFlash = 0;
+    private String imageNamePath = "profile.jpg";
+    private String path1;
     private boolean flashmode = false;
     private Camera camera;
 
@@ -114,7 +209,8 @@ public class FaceFilterActivity extends AppCompatActivity {
     private static final int RC_HANDLE_CAMERA_PERM = 2;
 
     private ImageButton emptyImageButton, hatImageButton,
-            maskImageButton, glassesImageButton, animalImageButton;
+            maskImageButton, glassesImageButton, animalImageButton, xyzImageButton;
+
     private LinearLayout emptyLinearLayout, hatLinearLayout,
             maskLinearLayout, glassesLinearLayout, animalLinearLayout;
 
@@ -127,8 +223,10 @@ public class FaceFilterActivity extends AppCompatActivity {
             cat2ImageView, dogImageView, snapImageView;
 
     private ImageView currentImageView;
+    private View rootView;
 
     private LinearLayout filterItemsLinearLayout;
+    private ImageLoader imageLoader;
 
     //==============================================================================================
     // Activity Methods
@@ -141,11 +239,24 @@ public class FaceFilterActivity extends AppCompatActivity {
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
         setContentView(R.layout.activity_face_filter);
+        rootView = getWindow().getDecorView().findViewById(android.R.id.content);
 
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
         mGraphicOverlay = (GraphicOverlay) findViewById(R.id.faceOverlay);
 
         initViews();
+
+        bitmapSRC = BitmapFactory.decodeResource(getResources(), currentImageValue);
+//        bitmapSRC = BitmapFactory.decodeResource(getResources(), MASK[0]);
+        bitmapPREV = bitmapSRC;
+
+        saveToInternalStorage1(bitmapSRC);
+
+        ImageLoaderConfiguration configuration = new ImageLoaderConfiguration.Builder(FaceFilterActivity.this).build();
+        ImageLoader.getInstance().init(configuration);
+        imageLoader = ImageLoader.getInstance();
+
+//        getLinksOfFilters(MASKS_LINK);
 
         //mTextGraphic = new TextGraphic(mGraphicOverlay);
         //mGraphicOverlay.add(mTextGraphic);
@@ -322,8 +433,13 @@ public class FaceFilterActivity extends AppCompatActivity {
         ImageButton camera = (ImageButton) findViewById(R.id.camera);
         camera.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                //takeImage();
-                onPause();
+//                showImageDialog(getScreenShot());
+//                showImageDialog(mPreview.getSurfaceBitmap());
+                //                mPreview.stop();
+//                showImageDialog(loadBitmapFromView(mPreview));
+//                showImageDialog(getScreenShot(mPreview));
+                takeImage();
+//                onPause();
             }
         });
 
@@ -338,6 +454,317 @@ public class FaceFilterActivity extends AppCompatActivity {
         }
     }
 
+    private void initRecyclerview() {
+//        Boolean isConnected = new GetJson().isConnected(FaceFilterActivity.this);
+
+        // set up the RecyclerView
+        MyRecyclerViewAdapter adapter;
+        RecyclerView recyclerView = findViewById(R.id.recyclerview_face_filter);
+        int numberOfColumns = 3;
+        int mNoOfColumns = calculateNoOfColumns(getApplicationContext(), 50);
+        recyclerView.setLayoutManager(new GridLayoutManager(this, mNoOfColumns));
+        adapter = new MyRecyclerViewAdapter(this);
+//        adapter = new MyRecyclerViewAdapter(this, data);
+        //adapter.setClickListener(this);
+        recyclerView.setAdapter(adapter);
+    }
+
+    public static int calculateNoOfColumns(Context context, float columnWidthDp) { // For example columnWidthdp=180
+        DisplayMetrics displayMetrics = context.getResources().getDisplayMetrics();
+        float screenWidthDp = displayMetrics.widthPixels / displayMetrics.density;
+        int noOfColumns = (int) (screenWidthDp / columnWidthDp + 0.5); // +0.5 for correct rounding to int.
+        return noOfColumns;
+    }
+
+    private Bitmap mergedBitmap(Bitmap bmp1, Bitmap bmp2) {
+        Bitmap bmOverlay = Bitmap.createBitmap(bmp1.getWidth(), bmp1.getHeight(), bmp1.getConfig());
+        Canvas canvas = new Canvas(bmOverlay);
+        canvas.drawBitmap(bmp1, 0, 0, null);
+//        canvas.drawBitmap(bmp1, new Matrix(), null);
+        canvas.drawBitmap(bmp2, 0, 0, null);
+        bmp1.recycle();
+        bmp2.recycle();
+        return bmOverlay;
+    }
+
+
+    private void downloadImage(int position) {
+//        ImageView imageView = findViewById(R.id.change);
+        downloadImageTask downloadImageTask = new downloadImageTask(position);
+        downloadImageTask.execute();
+    }
+
+    private void displayImage(ImageView imageView, String link) {
+        imageLoader.displayImage(
+                link,
+                imageView);
+    }
+
+    private class downloadImageTask extends AsyncTask<Void, Void, Void> {
+
+        ProgressDialog progressDialog;
+        int position;
+
+        public downloadImageTask(int position) {
+            this.position = position;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            progressDialog = new ProgressDialog(FaceFilterActivity.this);
+            progressDialog.setMessage("Loading...");
+            progressDialog.show();
+
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            bitmapSRC = imageLoader.loadImageSync(filterLinksList.get(position));
+            bitmapPREV = bitmapSRC;
+            saveToInternalStorage1(bitmapSRC);
+            //"https://firebasestorage.googleapis.com/v0/b/mysnapchatapp-cb445.appspot.com/o/filters%2FImage.png?alt=media&token=c94fbd47-e2a3-44a4-8f36-e0de9b15c083"
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            progressDialog.dismiss();
+        }
+    }
+
+//    @Override
+//    public void onItemClick(View view, int position) {
+//
+//    }
+
+    public class MyRecyclerViewAdapter extends RecyclerView.Adapter<MyRecyclerViewAdapter.ViewHolder> {
+
+        //        private String[] mData;
+        private LayoutInflater mInflater;
+//        private ItemClickListener mClickListener;
+
+        // data is passed into the constructor
+        MyRecyclerViewAdapter(Context context) {//, String[] data
+            this.mInflater = LayoutInflater.from(context);
+//            this.mData = data;
+        }
+
+        // inflates the cell layout from xml when needed
+        @Override
+        @NonNull
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = mInflater.inflate(R.layout.recyclerview_item, parent, false);
+            return new ViewHolder(view);
+        }
+        //            holder.myTextView.setText(filterLinksList.get(position));
+//            holder.myTextView.setText(mData[position]);
+
+        ImageView previousImageView = null;
+
+        @Override
+        public void onBindViewHolder(@NonNull final ViewHolder holder, int p) {
+            final int position = holder.getAdapterPosition();
+
+            holder.holder_imageView.setImageResource(filterImagesList.get(position));
+
+            holder.holder_imageView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+
+                    currentImageValue = filterImagesList.get(position);
+
+                    if (previousImageView == null) {
+                        holder.holder_imageView.setBackgroundResource(R.drawable.bg_filter_items_selected);
+                        previousImageView = holder.holder_imageView;
+
+                    } else {
+
+                        previousImageView.setBackgroundResource(0);
+                        previousImageView = holder.holder_imageView;
+                        previousImageView.setBackgroundResource(R.drawable.bg_filter_items_selected);
+                    }
+
+                    // HIDE ITEMS LAYOUT ON CLICK
+                    filterItemsLinearLayout.setVisibility(GONE);
+                    ((ImageButton) findViewById(R.id.face)).setImageResource(R.drawable.face);
+                }
+            });
+
+//            displayImage(holder.holder_imageView, filterLinksList.get(position));
+//            holder.holder_imageView.setOnClickListener(new View.OnClickListener() {
+//                @Override
+//                public void onClick(View view) {
+//                    downloadImage(position);
+//
+//                    if (previousImageView == null) {
+//                        holder.holder_imageView.setBackgroundResource(R.drawable.bg_filter_items_selected);
+//                        previousImageView = holder.holder_imageView;
+//
+//                    } else {
+//
+//                        previousImageView.setBackgroundResource(0);
+//                        previousImageView = holder.holder_imageView;
+//                        previousImageView.setBackgroundResource(R.drawable.bg_filter_items_selected);
+//                    }
+//
+//                    // HIDE ITEMS LAYOUT ON CLICK
+//                    filterItemsLinearLayout.setVisibility(GONE);
+//                    ((ImageButton) findViewById(R.id.face)).setImageResource(R.drawable.face);
+//                }
+//            });
+
+        }
+
+        // total number of cells
+        @Override
+        public int getItemCount() {
+            return filterImagesList.size();
+//            return filterLinksList.size();
+//            return mData.length;
+        }
+
+        // stores and recycles views as they are scrolled off screen
+        public class ViewHolder extends RecyclerView.ViewHolder {// implements View.OnClickListener
+            ImageView holder_imageView;
+//            TextView myTextView;
+
+            ViewHolder(View itemView) {
+                super(itemView);
+                holder_imageView = itemView.findViewById(R.id.imageview_recyclerview);
+//                itemView.setOnClickListener(this);
+            }
+
+//            @Override
+//            public void onClick(View view) {
+//                if (mClickListener != null) mClickListener.onItemClick(view, getAdapterPosition());
+//            }
+        }
+
+        // convenience method for getting data at click position
+        String getItem(int id) {
+            return filterLinksList.get(id);
+//            return mData[id];
+        }
+
+        // allows clicks events to be caught
+//        void setClickListener(ItemClickListener itemClickListener) {
+//            this.mClickListener = itemClickListener;
+//        }
+
+        // parent activity will implement this method to respond to click events
+//        public interface ItemClickListener {
+//            void onItemClick(View view, int position);
+//        }
+    }
+
+    private class GettingLinksTask extends AsyncTask<Void, Void, Void> {
+        String jsonString, error;
+        ProgressDialog progressDialog;
+        String opted_link;
+
+        public GettingLinksTask(String opted_link) {
+            this.opted_link = opted_link;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            progressDialog = new ProgressDialog(FaceFilterActivity.this);
+            progressDialog.setMessage("Loading...");
+            progressDialog.show();
+
+            filterLinksList.clear();
+//https://mysnapchatapp-cb445-default-rtdb.firebaseio.com/filters.json
+            try {
+                jsonString = new GetJson().AsString(opted_link);
+                Log.i(TAG, "doInBackground: jsonString:" + jsonString);
+
+            } catch (ExecutionException executionException) {
+                Log.i(TAG, "doInBackground: exception occurs");
+                executionException.printStackTrace();
+                error = executionException.getMessage();
+            } catch (InterruptedException interruptedException) {
+                Log.i(TAG, "doInBackground: exception occurs");
+                interruptedException.printStackTrace();
+                error = interruptedException.getMessage();
+            }
+
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            if (jsonString == null)
+                return null;
+
+            try {
+                JSONObject object = new JSONObject(jsonString);
+                Log.i(TAG, "doInBackground JSONObject object = new JSONObject(jsonString);\n" + object);
+                Iterator<String> iter = object.keys();
+                while (iter.hasNext()) {
+                    String key = iter.next();
+                    Log.i(TAG, "doInBackground String key = iter.next();\n" + key);
+                    try {
+                        String value = object.get(key).toString();
+                        filterLinksList.add(value);
+                        Log.i(TAG, "doInBackground: value: " + value);
+//                            Object value = jsonObj.get(key);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        error = "Json parsing error: " + e.getMessage();
+                    }
+                }
+
+            } catch (JSONException exception) {
+                exception.printStackTrace();
+                error = "Json parsing error: " + exception.getMessage();
+            }
+
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            progressDialog.dismiss();
+
+            if (error != null) {
+                Toast.makeText(FaceFilterActivity.this, error, Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            initRecyclerview();
+        }
+    }
+
+    private void getLinksOfFilters(String link) {
+        GettingLinksTask gettingLinksTask = new GettingLinksTask(link);
+        gettingLinksTask.execute();
+    }
+
+    private Bitmap loadBitmapFromView(View v) {
+        DisplayMetrics dm = FaceFilterActivity.this.getResources().getDisplayMetrics();
+        v.measure(View.MeasureSpec.makeMeasureSpec(dm.widthPixels, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(dm.heightPixels, View.MeasureSpec.EXACTLY));
+        v.layout(0, 0, v.getMeasuredWidth(), v.getMeasuredHeight());
+        Bitmap returnedBitmap = Bitmap.createBitmap(v.getMeasuredWidth(),
+                v.getMeasuredHeight(), Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(returnedBitmap);
+        v.draw(c);
+        return returnedBitmap;
+    }
+
+    private Bitmap getScreenShot() {//View view
+//        LinearLayout topLayout = findViewById(R.id.topLayout);
+//        View screenView = topLayout.getRootView();
+        RelativeLayout layout = findViewById(R.id.final_image_layout);
+        layout.setDrawingCacheEnabled(true);
+        Bitmap bitmap = Bitmap.createBitmap(layout.getDrawingCache());
+        layout.setDrawingCacheEnabled(false);
+        return bitmap;
+    }
+
     private void initViews() {
 
         currentImageButton = findViewById(R.id.empty_image_button);
@@ -348,6 +775,8 @@ public class FaceFilterActivity extends AppCompatActivity {
         maskImageButton = findViewById(R.id.mask_image_button);
         glassesImageButton = findViewById(R.id.glasses_image_button);
         animalImageButton = findViewById(R.id.animal_image_button);
+
+        xyzImageButton = findViewById(R.id.xyz_image_button);
 
         emptyLinearLayout = findViewById(R.id.empty_linear_layout);
         hatLinearLayout = findViewById(R.id.hat_linear_layout);
@@ -360,6 +789,7 @@ public class FaceFilterActivity extends AppCompatActivity {
         maskImageButton.setOnClickListener(maskImageButtonClickListener());
         glassesImageButton.setOnClickListener(glassesImageButtonClickListener());
         animalImageButton.setOnClickListener(animalImageButtonClickListener());
+        xyzImageButton.setOnClickListener(xyzImageButtonClickListener());
 
         hatImageView = findViewById(R.id.hat_image_view);
         hat2ImageView = findViewById(R.id.hat2_image_view);
@@ -392,8 +822,29 @@ public class FaceFilterActivity extends AppCompatActivity {
         filterItemsLinearLayout = findViewById(R.id.filter_items_linear_layout);
     }
 
-    private View.OnClickListener imageViewClickListener(final ImageView imageView, final int index) {
+    private View.OnClickListener xyzImageButtonClickListener() {
+        return new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                currentImageButton.setBackgroundResource(R.drawable.round_background);
+                currentImageButton = xyzImageButton;
+                currentImageButton.setBackgroundResource(R.drawable.round_background_select);
 
+                RecyclerView recyclerView = findViewById(R.id.recyclerview_face_filter);
+                if (recyclerView.getVisibility() == View.GONE)
+                    recyclerView.setVisibility(View.VISIBLE);
+
+                if (emptyLinearLayout.getVisibility() == View.VISIBLE)
+                    emptyLinearLayout.setVisibility(View.GONE);
+
+                initXyzList();
+
+//                getLinksOfFilters(XYZ_LINK);
+            }
+        };
+    }
+
+    private View.OnClickListener imageViewClickListener(final ImageView imageView, final int index) {
         return new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -406,8 +857,8 @@ public class FaceFilterActivity extends AppCompatActivity {
 
                     currentImageView.setBackgroundResource(R.drawable.bg_filter_items_selected);
 
-                    typeFace = index;
-
+//                    downloadImage();
+//                    typeFace = index;
                 }
 
             }
@@ -434,10 +885,19 @@ public class FaceFilterActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                toggleButtonAndLayout(emptyImageButton, emptyLinearLayout);
+//                toggleButtonAndLayout(emptyImageButton, emptyLinearLayout);
 
-                currentImageView.setBackgroundResource(0);
-                typeFace = 0;
+                currentImageButton.setBackgroundResource(R.drawable.round_background);
+                currentImageButton = emptyImageButton;
+                currentImageButton.setBackgroundResource(R.drawable.round_background_select);
+
+                RecyclerView recyclerView = findViewById(R.id.recyclerview_face_filter);
+                recyclerView.setVisibility(View.GONE);
+                emptyLinearLayout.setVisibility(View.VISIBLE);
+
+                currentImageValue = R.drawable.transparent;
+//                currentImageView.setBackgroundResource(0);
+//                typeFace = 0;
 
             }
         };
@@ -448,7 +908,22 @@ public class FaceFilterActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                toggleButtonAndLayout(hatImageButton, hatLinearLayout);
+//                toggleButtonAndLayout(hatImageButton, hatLinearLayout);
+
+                currentImageButton.setBackgroundResource(R.drawable.round_background);
+                currentImageButton = hatImageButton;
+                currentImageButton.setBackgroundResource(R.drawable.round_background_select);
+
+                RecyclerView recyclerView = findViewById(R.id.recyclerview_face_filter);
+                if (recyclerView.getVisibility() == View.GONE)
+                    recyclerView.setVisibility(View.VISIBLE);
+
+                if (emptyLinearLayout.getVisibility() == View.VISIBLE)
+                    emptyLinearLayout.setVisibility(View.GONE);
+
+                initHatList();
+
+//                getLinksOfFilters(HAT_LINK);
 
             }
         };
@@ -459,7 +934,24 @@ public class FaceFilterActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                toggleButtonAndLayout(maskImageButton, maskLinearLayout);
+//                toggleButtonAndLayout(maskImageButton, maskLinearLayout);
+
+                currentImageButton.setBackgroundResource(R.drawable.round_background);
+                currentImageButton = maskImageButton;
+                currentImageButton.setBackgroundResource(R.drawable.round_background_select);
+
+                RecyclerView recyclerView = findViewById(R.id.recyclerview_face_filter);
+
+                if (recyclerView.getVisibility() == View.GONE)
+                    recyclerView.setVisibility(View.VISIBLE);
+
+                if (emptyLinearLayout.getVisibility() == View.VISIBLE)
+                    emptyLinearLayout.setVisibility(View.GONE);
+
+                initMasksList();
+
+//                getLinksOfFilters(MASKS_LINK);
+
             }
         };
     }
@@ -469,7 +961,23 @@ public class FaceFilterActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                toggleButtonAndLayout(glassesImageButton, glassesLinearLayout);
+//                toggleButtonAndLayout(glassesImageButton, glassesLinearLayout);
+
+                currentImageButton.setBackgroundResource(R.drawable.round_background);
+                currentImageButton = glassesImageButton;
+                currentImageButton.setBackgroundResource(R.drawable.round_background_select);
+
+                RecyclerView recyclerView = findViewById(R.id.recyclerview_face_filter);
+                if (recyclerView.getVisibility() == View.GONE)
+                    recyclerView.setVisibility(View.VISIBLE);
+
+                if (emptyLinearLayout.getVisibility() == View.VISIBLE)
+                    emptyLinearLayout.setVisibility(View.GONE);
+
+                initGlassesList();
+
+//                getLinksOfFilters(GLASSES_LINK);
+
             }
         };
     }
@@ -479,9 +987,290 @@ public class FaceFilterActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                toggleButtonAndLayout(animalImageButton, animalLinearLayout);
+//                toggleButtonAndLayout(animalImageButton, animalLinearLayout);
+
+                currentImageButton.setBackgroundResource(R.drawable.round_background);
+                currentImageButton = hatImageButton;
+                currentImageButton.setBackgroundResource(R.drawable.round_background_select);
+
+                RecyclerView recyclerView = findViewById(R.id.recyclerview_face_filter);
+                if (recyclerView.getVisibility() == View.GONE)
+                    recyclerView.setVisibility(View.VISIBLE);
+
+                if (emptyLinearLayout.getVisibility() == View.VISIBLE)
+                    emptyLinearLayout.setVisibility(View.GONE);
+
+                initAnimalsList();
+
+//                getLinksOfFilters(ANIMALS_LINK);
+
             }
         };
+    }
+
+    private void showImageDialog(Bitmap bitmapImage, Bitmap loadedBitmap) {
+        final Dialog dialog = new Dialog(FaceFilterActivity.this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.layout_picture_taken);
+        dialog.setCancelable(true);
+        WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
+        layoutParams.copyFrom(dialog.getWindow().getAttributes());
+        layoutParams.width = WindowManager.LayoutParams.WRAP_CONTENT;
+        layoutParams.height = WindowManager.LayoutParams.WRAP_CONTENT;
+
+        ImageView imageView = dialog.findViewById(R.id.image_taken_imageview);
+        imageView.setImageBitmap(bitmapImage);
+
+        final ImageView imageView2 = dialog.findViewById(R.id.mask_imageview);
+//        imageView2.setImageBitmap(graphicBitmap);
+        imageView2.setImageBitmap(loadedBitmap);
+
+        dialog.findViewById(R.id.cancelBtn_imagetaken).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // CODE HERE
+                dialog.dismiss();
+            }
+        });
+
+        dialog.findViewById(R.id.saveBtn_imagetaken).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // CODE HERE
+
+//                File imageFile;
+                RelativeLayout layout = dialog.findViewById(R.id.final_image_layout);
+//                Bitmap finalBitmap = getScreenShot();
+                Bitmap finalBitmap = loadBitmapFromView(layout);
+
+                String imageName = saveToInternalStorage(finalBitmap);
+
+                Utils utils = new Utils();
+                String IMAGES_LIST_NAME = "image_list_names";
+
+                if (utils.getStoredArrayList(FaceFilterActivity.this,
+                        IMAGES_LIST_NAME).get(0).equals("Error")) {
+                    // ARRAY LIST IS EMPTY!
+
+                    ArrayList<String> listArray = new ArrayList<>();
+                    listArray.add(imageName);
+
+                    utils.storeArrayList(FaceFilterActivity.this,
+                            IMAGES_LIST_NAME, listArray);
+                } else {
+                    // ARRAY LIST IS NOT EMPTY
+
+                    ArrayList<String> listArray1 = utils.getStoredArrayList(
+                            FaceFilterActivity.this, IMAGES_LIST_NAME);
+                    listArray1.add(imageName);
+
+                    utils.storeArrayList(FaceFilterActivity.this,
+                            IMAGES_LIST_NAME, listArray1);
+
+                }
+
+//                Toast.makeText(FaceFilterActivity.this,
+//                        imageName, Toast.LENGTH_LONG).show();
+
+//                try {
+//
+//                    String state = Environment.getExternalStorageState();
+//                    File folder = null;
+//                    if (state.contains(Environment.MEDIA_MOUNTED)) {
+//                        folder = new File(Environment
+//                                .getExternalStorageDirectory() + "/faceFilter");
+//                    } else {
+//                        folder = new File(Environment
+//                                .getExternalStorageDirectory() + "/faceFilter");
+//                    }
+//
+//                    boolean success = true;
+//                    if (!folder.exists()) {
+//                        success = folder.mkdirs();
+//                    }
+//                    if (success) {
+//                        java.util.Date date = new java.util.Date();
+//                        imageFile = new File(folder.getAbsolutePath()
+//                                + File.separator
+//                                + new Timestamp(date.getTime()).toString()
+//                                + "Image.jpg");
+//
+//                        imageFile.createNewFile();
+//                    } else {
+//                        Toast.makeText(getBaseContext(), "Image Not saved",
+//                                Toast.LENGTH_SHORT).show();
+//                        return;
+//                    }
+//
+//                    ByteArrayOutputStream ostream = new ByteArrayOutputStream();
+//
+//                    // save image into gallery
+//                    finalBitmap = resize(finalBitmap, 800, 600);
+//                    finalBitmap.compress(Bitmap.CompressFormat.JPEG, 100, ostream);
+//
+//                    FileOutputStream fout = null;
+//
+//                    fout = new FileOutputStream(imageFile);
+//                    fout.write(ostream.toByteArray());
+//                    fout.close();
+//
+//                    Toast.makeText(FaceFilterActivity.this, "Saved!", Toast.LENGTH_SHORT).show();
+//
+//                    Toast.makeText(FaceFilterActivity.this, imageFile.toString(), Toast.LENGTH_LONG).show();
+//
+//                } catch (FileNotFoundException e) {
+//                    e.printStackTrace();
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+
+                dialog.dismiss();
+
+            }
+        });
+
+        dialog.findViewById(R.id.shareBtn_imagetaken).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                // CODE HERE
+                RelativeLayout layout = dialog.findViewById(R.id.final_image_layout);
+                MarginLayoutParams marginLayoutParams =
+                        (MarginLayoutParams) imageView2.getLayoutParams();
+
+                if (mCameraSource.getCameraFacing() == CameraSource.CAMERA_FACING_BACK) {
+                    //MARGIN VALUE FOR BACK CAMERA
+                    marginLayoutParams.setMargins(55, 55, 55, 55);
+                } else {
+                    //MARGIN VALUE FOR FRONT CAMERA
+                    marginLayoutParams.setMargins(45, 45, 45, 45);
+                }
+
+                imageView2.setLayoutParams(marginLayoutParams);
+
+                Bitmap finalBitmap = loadBitmapFromView(layout);
+                shareBitmap(finalBitmap);
+                dialog.dismiss();
+            }
+        });
+
+        dialog.show();
+        dialog.getWindow().setAttributes(layoutParams);
+
+//        mPreview.getPreviewBitmapImage()
+
+    }
+
+    private String saveToInternalStorage(Bitmap bitmapImage) {
+        ContextWrapper cw = new ContextWrapper(getApplicationContext());
+        // path to /data/data/yourapp/app_data/imageDir
+        File directory = cw.getDir("imageDir", Context.MODE_PRIVATE);
+        // Create imageDir
+        String name = "profile_" + String.valueOf(new Utils().getRandomNmbr(999))
+                + ".jpg";
+        File mypath = new File(directory, name);
+
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(mypath);
+            // Use the compress method on the BitMap object to write image to the OutputStream
+            bitmapImage.compress(Bitmap.CompressFormat.PNG, 100, fos);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                fos.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        new Utils().storeString(FaceFilterActivity.this,
+                "images_path",
+                directory.getAbsolutePath());
+
+        Toast.makeText(this, "Saved to: " + directory.getAbsolutePath(),
+                Toast.LENGTH_LONG).show();
+
+        return name;
+    }
+
+    private void saveToInternalStorage1(Bitmap bitmapImage) {
+        ContextWrapper cw = new ContextWrapper(getApplicationContext());
+        // path to /data/data/yourapp/app_data/imageDir
+        File directory = cw.getDir("imageDirTemp", Context.MODE_PRIVATE);
+        // Create imageDir
+        String name = "profile.jpg";
+        File mypath = new File(directory, name);
+
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(mypath);
+            // Use the compress method on the BitMap object to write image to the OutputStream
+            bitmapImage.compress(Bitmap.CompressFormat.PNG, 100, fos);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                fos.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+//        new Utils().storeString(FaceFilterActivity.this,
+//                "temp_image_path",
+//                directory.getAbsolutePath());
+        path1 = directory.getAbsolutePath();
+
+//        Toast.makeText(this, "Saved to: " + directory.getAbsolutePath(),
+//                Toast.LENGTH_LONG).show();
+
+//        return name;
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    private void shareBitmap(@NonNull Bitmap bitmap) {
+        //---Save bitmap to external cache directory---//
+        //get cache directory
+        File cachePath = new File(getExternalCacheDir(), "my_images/");
+        cachePath.mkdirs();
+
+        //create png file
+        File file = new File(cachePath,
+                "Image_" + String.valueOf(new Utils().getRandomNmbr(999))
+                        + ".png");
+        FileOutputStream fileOutputStream;
+        try {
+            fileOutputStream = new FileOutputStream(file);
+//            bitmap = resize(bitmap, 800, 600);
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, fileOutputStream);
+            fileOutputStream.flush();
+            fileOutputStream.close();
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        //---Share File---//
+        //get file uri
+        Uri myImageFileUri = FileProvider.getUriForFile(this, getApplicationContext().getPackageName() + ".provider", file);
+
+        //create a intent
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.putExtra(Intent.EXTRA_STREAM, myImageFileUri);
+        intent.setType("image/png");
+        startActivity(Intent.createChooser(intent, "Share with"));
+    }
+
+
+    private static Bitmap flippedBitmap(Bitmap source, boolean xFlip, boolean yFlip) {
+        Matrix matrix = new Matrix();
+        matrix.postScale(xFlip ? -1 : 1, yFlip ? -1 : 1, source.getWidth() / 2f, source.getHeight() / 2f);
+        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
     }
 
     private void takeImage() {
@@ -492,8 +1281,8 @@ public class FaceFilterActivity extends AppCompatActivity {
             //openCamera(CameraInfo.CAMERA_FACING_BACK);
             //setUpCamera(camera);
             //Thread.sleep(1000);
-            mCameraSource.takePicture(null, new CameraSource.PictureCallback() {
 
+            mCameraSource.takePicture(null, new CameraSource.PictureCallback() {
                 private File imageFile;
 
                 @Override
@@ -504,67 +1293,58 @@ public class FaceFilterActivity extends AppCompatActivity {
                         Bitmap rotatedBitmap = null;
                         loadedImage = BitmapFactory.decodeByteArray(bytes, 0,
                                 bytes.length);
+//                        rotateMatrix.postRotate(getWindowManager().getDefaultDisplay().getRotation());
 
                         // rotate Image
                         Matrix rotateMatrix = new Matrix();
-                        rotateMatrix.postRotate(getWindowManager().getDefaultDisplay().getRotation());
+
+                        int degreesTo = 270;
+                        if (mCameraSource.getCameraFacing() == CameraSource.CAMERA_FACING_BACK) {
+                            degreesTo = 90;
+                        }
+
+                        rotateMatrix.postRotate(degreesTo);//90 degrees for Back, 270 degrees for Front
                         rotatedBitmap = Bitmap.createBitmap(loadedImage, 0, 0,
                                 loadedImage.getWidth(), loadedImage.getHeight(),
                                 rotateMatrix, false);
-                        String state = Environment.getExternalStorageState();
-                        File folder = null;
-                        if (state.contains(Environment.MEDIA_MOUNTED)) {
-                            folder = new File(Environment
-                                    .getExternalStorageDirectory() + "/faceFilter");
-                        } else {
-                            folder = new File(Environment
-                                    .getExternalStorageDirectory() + "/faceFilter");
-                        }
 
-                        boolean success = true;
-                        if (!folder.exists()) {
-                            success = folder.mkdirs();
-                        }
-                        if (success) {
-                            java.util.Date date = new java.util.Date();
-                            imageFile = new File(folder.getAbsolutePath()
-                                    + File.separator
-                                    //+ new Timestamp(date.getTime()).toString()
-                                    + "Image.jpg");
+//                      Bitmap maskBitmap;
+                        Bitmap loadedBitmap = loadBitmapFromView(mGraphicOverlay);
+                        // rotate Image
+//                        Matrix rotateBitmapMatrix = new Matrix();
+//                        rotateBitmapMatrix.postRotate(270);
+//                        maskBitmap = Bitmap.createBitmap(loadedBitmap, 0, 0,
+//                                loadedBitmap.getWidth(), loadedBitmap.getHeight(),
+//                                rotateBitmapMatrix, false);
 
-                            imageFile.createNewFile();
-                        } else {
-                            Toast.makeText(getBaseContext(), "Image Not saved",
-                                    Toast.LENGTH_SHORT).show();
-                            return;
-                        }
+//                        maskBitmap = flippedBitmap(loadedBitmap, true, false);
 
-                        ByteArrayOutputStream ostream = new ByteArrayOutputStream();
+//                        Bitmap filterBm = mergedBitmap(rotatedBitmap, maskBitmap);
+//
+                        showImageDialog(rotatedBitmap, loadedBitmap);
 
-                        // save image into gallery
-                        rotatedBitmap = resize(rotatedBitmap, 800, 600);
-                        rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, ostream);
+//                      showImageDialog(loadBitmapFromView(mGraphicOverlay));
 
-                        FileOutputStream fout = new FileOutputStream(imageFile);
-                        fout.write(ostream.toByteArray());
-                        fout.close();
-                        ContentValues values = new ContentValues();
-
-                        values.put(MediaStore.Images.Media.DATE_TAKEN,
-                                System.currentTimeMillis());
-                        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-                        values.put(MediaStore.MediaColumns.DATA,
-                                imageFile.getAbsolutePath());
-
-                        setResult(Activity.RESULT_OK); //add this
-                        finish();
+                        //                        ContentValues values = new ContentValues();
+//
+//                        values.put(MediaStore.Images.Media.DATE_TAKEN,
+//                                System.currentTimeMillis());
+//                        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+//                        values.put(MediaStore.MediaColumns.DATA,
+//                                imageFile.getAbsolutePath());
+//
+//                        setResult(Activity.RESULT_OK); //add this
+//                        finish();
                     } catch (Exception e) {
+                        Toast.makeText(FaceFilterActivity.this, e.getMessage(), Toast.LENGTH_SHORT).show();
                         e.printStackTrace();
                     }
                 }
             });
 
         } catch (Exception ex) {
+            Toast.makeText(FaceFilterActivity.this, ex.getMessage(), Toast.LENGTH_SHORT).show();
+            ex.printStackTrace();
         }
 
     }
@@ -621,6 +1401,7 @@ public class FaceFilterActivity extends AppCompatActivity {
                 .setAction(R.string.ok, listener)
                 .show();
     }
+
 
     /**
      * Creates and starts the camera.  Note that this uses a higher resolution in comparison
@@ -778,32 +1559,32 @@ public class FaceFilterActivity extends AppCompatActivity {
         }
     }
 
-    private class GraphicTextTrackerFactory implements MultiProcessor.Factory<String> {
-        @Override
-        public Tracker<String> create(String face) {
-            return new GraphicTextTracker(mGraphicOverlay);
-        }
-    }
-
-    private class GraphicTextTracker extends Tracker<String> {
-        private GraphicOverlay mOverlay;
-        private TextGraphic mTextGraphic;
-
-        GraphicTextTracker(GraphicOverlay overlay) {
-            mOverlay = overlay;
-            mTextGraphic = new TextGraphic(overlay);
-        }
-
-        public void onUpdate() {
-            mOverlay.add(mTextGraphic);
-            mTextGraphic.updateText(3);
-        }
-
-        @Override
-        public void onDone() {
-            mOverlay.remove(mTextGraphic);
-        }
-    }
+//    private class GraphicTextTrackerFactory implements MultiProcessor.Factory<String> {
+//        @Override
+//        public Tracker<String> create(String face) {
+//            return new GraphicTextTracker(mGraphicOverlay);
+//        }
+//    }
+//
+//    private class GraphicTextTracker extends Tracker<String> {
+//        private GraphicOverlay mOverlay;
+//        private TextGraphic mTextGraphic;
+//
+//        GraphicTextTracker(GraphicOverlay overlay) {
+//            mOverlay = overlay;
+//            mTextGraphic = new TextGraphic(overlay);
+//        }
+//
+//        public void onUpdate() {
+//            mOverlay.add(mTextGraphic);
+//            mTextGraphic.updateText(3);
+//        }
+//
+//        @Override
+//        public void onDone() {
+//            mOverlay.remove(mTextGraphic);
+//        }
+//    }
 
 //==============================================================================================
 // Graphic Face Tracker
@@ -829,8 +1610,14 @@ public class FaceFilterActivity extends AppCompatActivity {
         private FaceGraphic mFaceGraphic;
 
         GraphicFaceTracker(GraphicOverlay overlay) {
+//            if (bitmapSRC != bitmapPREV)
+//                return;
+
             mOverlay = overlay;
-            mFaceGraphic = new FaceGraphic(overlay, typeFace);
+            mFaceGraphic = new FaceGraphic(overlay, currentImageValue);
+//            mFaceGraphic = new FaceGraphic(overlay, path1, imageNamePath);
+//            mFaceGraphic = new FaceGraphic(overlay, bitmapSRC);
+//            mFaceGraphic = new FaceGraphic(overlay, typeFace);
         }
 
         /**
@@ -844,10 +1631,22 @@ public class FaceFilterActivity extends AppCompatActivity {
         /**
          * Update the position/characteristics of the face within the overlay.
          */
+
         @Override
         public void onUpdate(FaceDetector.Detections<Face> detectionResults, Face face) {
+            Log.d(TAG, "onUpdate123: started");
+
+            //            if (bitmapSRC == bitmapPREV)
+//                return;
+
             mOverlay.add(mFaceGraphic);
-            mFaceGraphic.updateFace(face, typeFace);
+            mFaceGraphic.updateFace(face, currentImageValue);
+
+            graphicBitmap = mFaceGraphic.getBitmap(face, BitmapFactory.decodeResource(getResources(), currentImageValue));
+
+//            mFaceGraphic.updateFace(face, path1, imageNamePath);
+//            mFaceGraphic.updateFace(face, bitmapSRC);
+//            mFaceGraphic.updateFace(face, typeFace);
         }
 
         /**

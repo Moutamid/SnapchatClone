@@ -233,8 +233,8 @@
                 android:id="@+id/filter_items_linear_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
+                android:visibility="gone"
+                android:orientation="vertical">
 
                 <HorizontalScrollView
                     android:layout_width="match_parent"
@@ -297,6 +297,16 @@
                             android:scaleType="fitXY"
                             app:srcCompat="@drawable/snap" />
 
+                        <ImageButton
+                            android:id="@+id/xyz_image_button"
+                            android:layout_width="50dp"
+                            android:layout_height="50dp"
+                            android:layout_margin="4dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/round_background"
+                            android:scaleType="fitXY"
+                            app:srcCompat="@drawable/op" />
+
                     </LinearLayout>
 
                 </HorizontalScrollView>
@@ -327,6 +337,14 @@
 
                 </LinearLayout>
 
+
+                <android.support.v7.widget.RecyclerView
+                    android:id="@+id/recyclerview_face_filter"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:visibility="gone"
+                    android:background="#EFEFEF"
+                    android:padding="20dp" />
 
                 <!--            HAT LAYOUT-->
                 <LinearLayout

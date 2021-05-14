@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:id="@+id/final_image_layout"
+        android:layout_height="400dp">
+
+        <ImageView
+            android:id="@+id/image_taken_imageview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/mask3" />
+
+        <ImageView
+            android:id="@+id/mask_imageview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@drawable/hat2" />
+
+    </RelativeLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingLeft="20dp"
+        android:paddingTop="20dp"
+        android:paddingEnd="20dp"
+        android:paddingRight="20dp">
+
+        <android.support.v7.widget.AppCompatButton
+            android:id="@+id/saveBtn_imagetaken"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginEnd="10dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_sign_up_btn"
+            android:text="save"
+            android:textColor="@color/white" />
+
+        <android.support.v7.widget.AppCompatButton
+            android:id="@+id/shareBtn_imagetaken"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_sign_up_btn"
+            android:text="share"
+            android:textColor="@color/white" />
+
+
+    </LinearLayout>
+
+    <android.support.v7.widget.AppCompatButton
+        android:id="@+id/cancelBtn_imagetaken"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:layout_margin="20dp"
+        android:background="@drawable/bg_sign_up_btn"
+        android:text="cancel"
+        android:textColor="@color/white" />
+
+
+</LinearLayout>

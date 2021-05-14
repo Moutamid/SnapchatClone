@@ -4,6 +4,20 @@
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
 
+<!--    Home screen colors-->
+    <color name="colorTop">#fecc83</color>
+    <color name="colorBottom">#ff7f7e</color>
+    <color name="colorText">#665134</color>
+    <color name="colorBox">#ff8b7e</color>
+
+    <!--colors for profile-->
+    <color name="profilePrimaryDark">#FF3B30</color>
+    <color name="profileAccentColor">#F7F7F7</color>
+    <color name="whiteTextColor">#fff</color>
+    <color name="profileBackground">#fff</color>
+    <color name="blackTextColor">#000</color>
+    <color name="profileEditTextColor">#707070</color>
+
     <color name="darkBlue">#292f47</color>
     <color name="lightBlue">#303751</color>
     <color name="lighterBlue">#3c4462</color>
